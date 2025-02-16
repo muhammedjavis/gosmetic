@@ -3,7 +3,7 @@
 
 ## Initial Quiz :
 
-![image](https://github.com/user-attachments/assets/edb1defd-252f-491a-aa55-279a9349b883)
+![image](https://github.com/user-attachments/assets/370402ff-d201-4e7d-a514-79dd554015e1)
 
 ![image](https://github.com/user-attachments/assets/0ddf362f-8701-4663-8bfa-136e592e4a4f)
 
