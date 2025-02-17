@@ -1,5 +1,6 @@
- ## Gosmetic : Skin Care Recommendation App
---------------------------------------------
+## Gosmetic : Skin Care Recommendation App
+
+## gosmetic.vercel.app
 
 ## Initial Quiz :
 
@@ -18,7 +19,3 @@
 ![image](https://github.com/user-attachments/assets/9961ea93-1232-4c0e-a8d2-6dba25d6f951)
 
 ![image](https://github.com/user-attachments/assets/4bf5467c-9a28-4131-8c17-d7c7a83b75e0)
-
-
-
-
