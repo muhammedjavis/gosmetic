@@ -6,6 +6,7 @@ import Header from './components/Header';
 import WishlistModal from './components/WishlistModal';
 import CartModal from './components/CartModal';
 import { products } from './data/products';
+import Toast from './components/Toast';
 
 function App() {
   const [skinType, setSkinType] = useState(null);
@@ -13,6 +14,7 @@ function App() {
   const [cart, setCart] = useState([]);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const handleUpdateCartQuantity = (productId, newQuantity) => {
     setCart((prev) => {
@@ -35,15 +37,30 @@ function App() {
   };
 
   const handleToggleWishlist = (productId) => {
-    setWishlist((prev) =>
-      prev.includes(productId)
+    setWishlist((prev) => {
+      const newWishlist = prev.includes(productId)
         ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
+        : [...prev, productId];
+
+      const product = products.find((p) => p.id === productId);
+      showToast(
+        prev.includes(productId)
+          ? `${product.name} removed from wishlist`
+          : `${product.name} added to wishlist`
+      );
+
+      return newWishlist;
+    });
+  };
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000); // Hide after 3 seconds
   };
 
   const handleAddToCart = (product) => {
     setCart((prev) => [...prev, { ...product, quantity: 1 }]);
+    showToast(`${product.name} added to cart`);
   };
 
   return (
@@ -181,6 +198,8 @@ function App() {
         onUpdateQuantity={handleUpdateCartQuantity}
         onRemoveItem={handleRemoveFromCart}
       />
+
+      {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
   );
 }

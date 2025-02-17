@@ -9,19 +9,53 @@ export default function ProductRecommendations({
   onAddToCart,
 }) {
   const [activeTab, setActiveTab] = useState('all');
+  const [filters, setFilters] = useState({
+    priceRange: 'all', // all, under25, 25to50, over50
+    skinConcern: 'all',
+    ingredients: [],
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [sortBy, setSortBy] = useState('recommended');
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const filteredProducts = products.filter((product) => {
-    const matchesSkinType =
-      product.suitableFor.includes(skinType.type) ||
-      product.suitableFor.includes('all');
+    // Gender/Tab filter
     const matchesGender =
       activeTab === 'all'
         ? product.gender === 'unisex' || product.gender === skinType.gender
-        : product.gender === 'men';
-    return matchesSkinType && matchesGender;
+        : product.gender === activeTab;
+
+    // Skin type filter
+    const matchesSkinType =
+      product.suitableFor.includes(skinType.type) ||
+      product.suitableFor.includes('all');
+
+    // Price range filter
+    const matchesPrice =
+      filters.priceRange === 'all' ||
+      (filters.priceRange === 'under25' && product.price < 25) ||
+      (filters.priceRange === '25to50' &&
+        product.price >= 25 &&
+        product.price <= 50) ||
+      (filters.priceRange === 'over50' && product.price > 50);
+
+    // Skin concern filter
+    const matchesConcern =
+      filters.skinConcern === 'all' ||
+      product.suitableFor.includes(filters.skinConcern);
+
+    // Ingredients filter
+    const matchesIngredients =
+      filters.ingredients.length === 0 ||
+      filters.ingredients.every((ing) => product.ingredients.includes(ing));
+
+    return (
+      matchesGender &&
+      matchesSkinType &&
+      matchesPrice &&
+      matchesConcern &&
+      matchesIngredients
+    );
   });
 
   const ProductSkeleton = () => (
@@ -142,9 +176,9 @@ export default function ProductRecommendations({
                 All Products
               </button>
               <button
-                onClick={() => setActiveTab('men')}
+                onClick={() => setActiveTab(skinType.gender)}
                 className={`px-4 py-2 rounded-full transition-colors flex items-center space-x-2 ${
-                  activeTab === 'men'
+                  activeTab === skinType.gender
                     ? skinType.gender === 'female'
                       ? 'bg-rose-600 text-white'
                       : 'bg-cyan-600 text-white'
@@ -152,7 +186,9 @@ export default function ProductRecommendations({
                 }`}
               >
                 <User2 className='w-4 h-4' />
-                <span>Men's Products</span>
+                <span>
+                  {skinType.gender === 'female' ? "Women's" : "Men's"} Products
+                </span>
               </button>
             </div>
           </div>
@@ -168,6 +204,138 @@ export default function ProductRecommendations({
           </button>
         </div>
 
+        <div className='flex flex-wrap gap-4 mb-6'>
+          {/* Price Range Filter */}
+          <div className='relative'>
+            <label className='block text-sm font-medium text-gray-700 mb-1'>
+              Price Range
+            </label>
+            <select
+              value={filters.priceRange}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, priceRange: e.target.value }))
+              }
+              className={`appearance-none w-full min-w-[160px] px-4 py-2 bg-white border rounded-lg cursor-pointer outline-none ${
+                skinType.gender === 'female'
+                  ? 'focus:border-rose-300 hover:border-rose-200'
+                  : 'focus:border-cyan-300 hover:border-cyan-200'
+              }`}
+            >
+              <option value='all'>All Prices</option>
+              <option value='under25'>Under $25</option>
+              <option value='25to50'>$25 - $50</option>
+              <option value='over50'>Over $50</option>
+            </select>
+            <div className='absolute right-3 top-[34px] pointer-events-none'>
+              <svg
+                className='w-4 h-4 text-gray-400'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  d='M19 9l-7 7-7-7'
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth='2'
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Skin Concern Filter */}
+          <div className='relative'>
+            <label className='block text-sm font-medium text-gray-700 mb-1'>
+              Skin Concern
+            </label>
+            <select
+              value={filters.skinConcern}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, skinConcern: e.target.value }))
+              }
+              className={`appearance-none w-full min-w-[180px] px-4 py-2 bg-white border rounded-lg cursor-pointer outline-none ${
+                skinType.gender === 'female'
+                  ? 'focus:border-rose-300 hover:border-rose-200'
+                  : 'focus:border-cyan-300 hover:border-cyan-200'
+              }`}
+            >
+              <option value='all'>All Concerns</option>
+              <option value='dry'>Dry Skin</option>
+              <option value='oily'>Oily Skin</option>
+              <option value='sensitive'>Sensitive Skin</option>
+              <option value='combination'>Combination Skin</option>
+            </select>
+            <div className='absolute right-3 top-[34px] pointer-events-none'>
+              <svg
+                className='w-4 h-4 text-gray-400'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  d='M19 9l-7 7-7-7'
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth='2'
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Ingredients Filter */}
+          <div className='relative flex-1 max-w-xs'>
+            <label className='block text-sm font-medium text-gray-700 mb-1'>
+              Ingredients
+            </label>
+            <select
+              value={filters.ingredients}
+              onChange={(e) => {
+                const options = e.target.options;
+                const selected = [];
+                for (let i = 0; i < options.length; i++) {
+                  if (options[i].selected) {
+                    selected.push(options[i].value);
+                  }
+                }
+                setFilters((prev) => ({ ...prev, ingredients: selected }));
+              }}
+              className={`w-full px-4 py-2 bg-white border rounded-lg cursor-pointer outline-none ${
+                skinType.gender === 'female'
+                  ? 'focus:border-rose-300 hover:border-rose-200'
+                  : 'focus:border-cyan-300 hover:border-cyan-200'
+              }`}
+              multiple
+              size={3}
+            >
+              <option value='Glycerin'>Glycerin</option>
+              <option value='Hyaluronic Acid'>Hyaluronic Acid</option>
+              <option value='Niacinamide'>Niacinamide</option>
+              <option value='Aloe Vera'>Aloe Vera</option>
+              <option value='Rose Water'>Rose Water</option>
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          <div className='flex items-end'>
+            <button
+              onClick={() =>
+                setFilters({
+                  priceRange: 'all',
+                  skinConcern: 'all',
+                  ingredients: [],
+                })
+              }
+              className={`px-4 py-2 rounded-lg border transition-colors ${
+                skinType.gender === 'female'
+                  ? 'border-rose-200 text-rose-600 hover:bg-rose-50'
+                  : 'border-cyan-200 text-cyan-600 hover:bg-cyan-50'
+              }`}
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+
         <div className='flex items-center space-x-4 mb-4'>
           <label className='text-gray-600'>Sort by:</label>
           <select
@@ -181,6 +349,10 @@ export default function ProductRecommendations({
             <option value='rating'>Highest Rated</option>
           </select>
         </div>
+
+        <p className='text-gray-600 mb-4'>
+          Showing {filteredProducts.length} products
+        </p>
 
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
           {isLoading
