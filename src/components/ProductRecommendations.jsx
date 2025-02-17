@@ -1,12 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { products } from '../data/products';
-import { Star, ShoppingCart, Heart, ArrowLeft, User2 } from 'lucide-react';
+import {
+  Star,
+  ShoppingCart,
+  Heart,
+  ArrowLeft,
+  User2,
+  Check,
+} from 'lucide-react';
 
 export default function ProductRecommendations({
   skinType,
   wishlist,
   onToggleWishlist,
   onAddToCart,
+  onRetakeQuiz,
 }) {
   const [activeTab, setActiveTab] = useState('all');
   const [filters, setFilters] = useState({
@@ -77,6 +85,113 @@ export default function ProductRecommendations({
         <div className='bg-white rounded-xl p-6 max-w-2xl w-full mx-4'>
           {/* Add detailed product information */}
         </div>
+      </div>
+    );
+  };
+
+  const IngredientsFilter = ({ selectedIngredients, onChange, skinType }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target)
+        ) {
+          setIsOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const allIngredients = [
+      'Glycerin',
+      'Hyaluronic Acid',
+      'Niacinamide',
+      'Aloe Vera',
+      'Rose Water',
+      'Vitamin C',
+      'Retinol',
+      'Peptides',
+    ];
+
+    const toggleIngredient = (ingredient) => {
+      const newSelected = selectedIngredients.includes(ingredient)
+        ? selectedIngredients.filter((i) => i !== ingredient)
+        : [...selectedIngredients, ingredient];
+      onChange(newSelected);
+    };
+
+    return (
+      <div className='relative' ref={dropdownRef}>
+        <label className='block text-sm font-medium text-gray-700 mb-1'>
+          Ingredients{' '}
+          {selectedIngredients.length > 0 && `(${selectedIngredients.length})`}
+        </label>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`w-full px-4 py-2 bg-white border rounded-lg text-left flex justify-between items-center ${
+            isOpen
+              ? skinType.gender === 'female'
+                ? 'border-rose-300'
+                : 'border-cyan-300'
+              : 'hover:border-gray-300'
+          }`}
+        >
+          <span className='truncate'>
+            {selectedIngredients.length === 0
+              ? 'Select ingredients'
+              : selectedIngredients.join(', ')}
+          </span>
+          <svg
+            className={`w-4 h-4 text-gray-400 transition-transform ${
+              isOpen ? 'transform rotate-180' : ''
+            }`}
+            fill='none'
+            stroke='currentColor'
+            viewBox='0 0 24 24'
+          >
+            <path
+              d='M19 9l-7 7-7-7'
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              strokeWidth='2'
+            />
+          </svg>
+        </button>
+
+        {isOpen && (
+          <div className='absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-auto'>
+            <div className='p-2 space-y-1'>
+              {allIngredients.map((ingredient) => (
+                <button
+                  key={ingredient}
+                  onClick={() => toggleIngredient(ingredient)}
+                  className='w-full flex items-center space-x-3 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer'
+                >
+                  <div
+                    className={`w-5 h-5 border rounded flex items-center justify-center ${
+                      selectedIngredients.includes(ingredient)
+                        ? skinType.gender === 'female'
+                          ? 'bg-rose-500 border-rose-500'
+                          : 'bg-cyan-500 border-cyan-500'
+                        : 'border-gray-300'
+                    }`}
+                  >
+                    {selectedIngredients.includes(ingredient) && (
+                      <Check className='w-3.5 h-3.5 text-white' />
+                    )}
+                  </div>
+                  <span className='text-sm text-gray-700'>{ingredient}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -193,6 +308,7 @@ export default function ProductRecommendations({
             </div>
           </div>
           <button
+            onClick={onRetakeQuiz}
             className={`flex items-center text-gray-600 ${
               skinType.gender === 'female'
                 ? 'hover:text-rose-600'
@@ -284,35 +400,13 @@ export default function ProductRecommendations({
 
           {/* Ingredients Filter */}
           <div className='relative flex-1 max-w-xs'>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
-              Ingredients
-            </label>
-            <select
-              value={filters.ingredients}
-              onChange={(e) => {
-                const options = e.target.options;
-                const selected = [];
-                for (let i = 0; i < options.length; i++) {
-                  if (options[i].selected) {
-                    selected.push(options[i].value);
-                  }
-                }
-                setFilters((prev) => ({ ...prev, ingredients: selected }));
-              }}
-              className={`w-full px-4 py-2 bg-white border rounded-lg cursor-pointer outline-none ${
-                skinType.gender === 'female'
-                  ? 'focus:border-rose-300 hover:border-rose-200'
-                  : 'focus:border-cyan-300 hover:border-cyan-200'
-              }`}
-              multiple
-              size={3}
-            >
-              <option value='Glycerin'>Glycerin</option>
-              <option value='Hyaluronic Acid'>Hyaluronic Acid</option>
-              <option value='Niacinamide'>Niacinamide</option>
-              <option value='Aloe Vera'>Aloe Vera</option>
-              <option value='Rose Water'>Rose Water</option>
-            </select>
+            <IngredientsFilter
+              selectedIngredients={filters.ingredients}
+              onChange={(selected) =>
+                setFilters((prev) => ({ ...prev, ingredients: selected }))
+              }
+              skinType={skinType}
+            />
           </div>
 
           {/* Clear Filters Button */}

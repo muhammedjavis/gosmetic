@@ -7,8 +7,11 @@ import WishlistModal from './components/WishlistModal';
 import CartModal from './components/CartModal';
 import { products } from './data/products';
 import Toast from './components/Toast';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Auth from './components/Auth';
 
-function App() {
+function AppContent() {
+  const { user, skinProfiles } = useAuth();
   const [skinType, setSkinType] = useState(null);
   const [wishlist, setWishlist] = useState([]);
   const [cart, setCart] = useState([]);
@@ -63,6 +66,16 @@ function App() {
     showToast(`${product.name} added to cart`);
   };
 
+  const handleRetakeQuiz = () => {
+    setSkinType(null);
+    setWishlist([]);
+    setCart([]);
+  };
+
+  if (!user) {
+    return <Auth />;
+  }
+
   return (
     <div className='min-h-screen bg-gradient-to-br from-gray-50 via-neutral-50 to-gray-50'>
       <Header
@@ -96,6 +109,7 @@ function App() {
             wishlist={wishlist}
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
+            onRetakeQuiz={handleRetakeQuiz}
           />
         )}
       </main>
@@ -201,6 +215,14 @@ function App() {
 
       {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

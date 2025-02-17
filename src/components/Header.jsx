@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Heart, ShoppingCart, Sparkles } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Header({
   skinType,
@@ -9,6 +10,15 @@ export default function Header({
   onOpenCart,
   showActions,
 }) {
+  const { signOut, user } = useAuth();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    await signOut();
+    setIsSigningOut(false);
+  };
+
   return (
     <header className='bg-white shadow-sm sticky top-0 z-50'>
       <div className='max-w-7xl mx-auto px-4 py-4'>
@@ -71,6 +81,17 @@ export default function Header({
                   )}
                 </button>
               </>
+            )}
+            {user && (
+              <button
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className={`text-gray-600 hover:text-rose-600 ${
+                  isSigningOut ? 'opacity-50' : ''
+                }`}
+              >
+                {isSigningOut ? 'Signing out...' : 'Sign Out'}
+              </button>
             )}
           </div>
         </div>

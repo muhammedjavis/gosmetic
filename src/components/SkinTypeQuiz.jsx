@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, Loader2, User2, UserCircle2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const questions = [
   {
@@ -101,6 +102,7 @@ const questions = [
 ];
 
 export default function SkinTypeQuiz({ onComplete }) {
+  const { saveSkinProfile } = useAuth();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -112,17 +114,32 @@ export default function SkinTypeQuiz({ onComplete }) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       setIsAnalyzing(true);
-      // Simulate analysis delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      const skinType = {
-        type: determineSkinType(answers[1]),
-        concerns: [answers[2]],
-        climate: answers[3],
-        gender: answers[0],
-      };
-      console.log('Quiz answers:', skinType);
-      onComplete(skinType);
+        const skinType = {
+          type: determineSkinType(answers[1]),
+          concerns: [answers[2]],
+          climate: answers[3],
+          gender: answers[0],
+        };
+
+        console.log('Saving skin profile:', skinType);
+        const { error } = await saveSkinProfile(skinType);
+        if (error) {
+          console.error('Error saving profile:', error);
+          alert('There was an error saving your profile. Please try again.');
+          return;
+        }
+        console.log('Profile saved successfully');
+
+        onComplete(skinType);
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Something went wrong. Please try again.');
+      } finally {
+        setIsAnalyzing(false);
+      }
     }
   };
 
