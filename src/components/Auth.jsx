@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { Sparkles } from 'lucide-react';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -35,55 +36,70 @@ export default function Auth() {
   };
 
   return (
-    <div className='max-w-md mx-auto p-6 bg-white rounded-xl shadow-lg'>
-      <h2 className='text-2xl font-bold mb-6'>
-        {isLogin ? 'Sign In' : 'Create Account'}
-      </h2>
-      {error && (
-        <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg'>
-          {error}
+    <div>
+      {/* Auth Header */}
+      <header className='bg-white shadow-sm'>
+        <div className='max-w-7xl mx-auto px-4 py-4'>
+          <div className='flex items-center justify-center'>
+            <div className='flex items-center space-x-2'>
+              <Sparkles className='w-6 h-6 text-rose-600' />
+              <h1 className='text-xl font-bold text-gray-800'>Gosmetic</h1>
+            </div>
+          </div>
         </div>
-      )}
-      <form onSubmit={handleSubmit} className='space-y-4'>
-        <input
-          type='email'
-          placeholder='Email'
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className='w-full px-4 py-2 border rounded-lg'
-          disabled={loading}
-          required
-        />
-        <input
-          type='password'
-          placeholder='Password'
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className='w-full px-4 py-2 border rounded-lg'
-          disabled={loading}
-          required
-          minLength={6}
-        />
+      </header>
+
+      {/* Auth Form */}
+      <div className='max-w-md mx-auto p-6 mt-12 bg-white rounded-xl shadow-lg'>
+        <h2 className='text-2xl font-bold mb-6'>
+          {isLogin ? 'Sign In' : 'Create Account'}
+        </h2>
+        {error && (
+          <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg'>
+            {error}
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className='space-y-4'>
+          <input
+            type='email'
+            placeholder='Email'
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className='w-full px-4 py-2 border rounded-lg'
+            disabled={loading}
+            required
+          />
+          <input
+            type='password'
+            placeholder='Password'
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className='w-full px-4 py-2 border rounded-lg'
+            disabled={loading}
+            required
+            minLength={6}
+          />
+          <button
+            type='submit'
+            className={`w-full px-4 py-2 bg-rose-600 text-white rounded-lg ${
+              loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-rose-700'
+            }`}
+            disabled={loading}
+          >
+            {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
+          </button>
+        </form>
         <button
-          type='submit'
-          className={`w-full px-4 py-2 bg-rose-600 text-white rounded-lg ${
-            loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-rose-700'
-          }`}
+          onClick={() => {
+            setIsLogin(!isLogin);
+            setError(null);
+          }}
+          className='mt-4 text-rose-600'
           disabled={loading}
         >
-          {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
+          {isLogin ? 'Need an account? Sign up' : 'Have an account? Sign in'}
         </button>
-      </form>
-      <button
-        onClick={() => {
-          setIsLogin(!isLogin);
-          setError(null);
-        }}
-        className='mt-4 text-rose-600'
-        disabled={loading}
-      >
-        {isLogin ? 'Need an account? Sign up' : 'Have an account? Sign in'}
-      </button>
+      </div>
     </div>
   );
 }
