@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SkinTypeQuiz from './components/SkinTypeQuiz';
 import ProductRecommendations from './components/ProductRecommendations';
 import { Sparkles, Menu } from 'lucide-react';
@@ -12,12 +12,38 @@ import Auth from './components/Auth';
 
 function AppContent() {
   const { user, skinProfiles } = useAuth();
-  const [skinType, setSkinType] = useState(null);
+  const [skinType, setSkinType] = useState(() => {
+    // Initialize skinType from the most recent profile if available
+    if (skinProfiles && skinProfiles.length > 0) {
+      // Get the most recent profile
+      const latestProfile = skinProfiles[skinProfiles.length - 1];
+      return {
+        type: latestProfile.type,
+        concerns: latestProfile.concerns,
+        climate: latestProfile.climate,
+        gender: latestProfile.gender,
+      };
+    }
+    return null;
+  });
   const [wishlist, setWishlist] = useState([]);
   const [cart, setCart] = useState([]);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // Update skinType when profiles are loaded
+  useEffect(() => {
+    if (skinProfiles && skinProfiles.length > 0) {
+      const latestProfile = skinProfiles[skinProfiles.length - 1];
+      setSkinType({
+        type: latestProfile.type,
+        concerns: latestProfile.concerns,
+        climate: latestProfile.climate,
+        gender: latestProfile.gender,
+      });
+    }
+  }, [skinProfiles]);
 
   const handleUpdateCartQuantity = (productId, newQuantity) => {
     setCart((prev) => {
