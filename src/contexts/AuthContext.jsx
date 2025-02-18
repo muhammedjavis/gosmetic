@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
@@ -47,8 +47,19 @@ export const AuthProvider = ({ children }) => {
     return supabase.auth.signUp({ email, password });
   };
 
-  const signIn = (email, password) => {
-    return supabase.auth.signInWithPassword({ email, password });
+  const signIn = async (email, password) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      setUser(data.user);
+      return data;
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
+    }
   };
 
   const signOut = () => {
@@ -72,16 +83,55 @@ export const AuthProvider = ({ children }) => {
     return { data, error };
   };
 
+  const saveReview = async (productId, rating, comment) => {
+    const { data, error } = await supabase.from('reviews').insert([
+      {
+        user_id: user.id,
+        product_id: productId,
+        rating,
+        comment,
+        created_at: new Date(),
+      },
+    ]);
+    return { data, error };
+  };
+
+  const saveRoutine = async (routineSteps) => {
+    const { data, error } = await supabase.from('routines').insert([
+      {
+        user_id: user.id,
+        steps: routineSteps,
+        created_at: new Date(),
+      },
+    ]);
+    return { data, error };
+  };
+
+  const saveProgress = async (date, completedSteps) => {
+    const { data, error } = await supabase.from('progress').insert([
+      {
+        user_id: user.id,
+        date,
+        completed_steps: completedSteps,
+      },
+    ]);
+    return { data, error };
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
         skinProfiles,
+        setUser,
         signUp,
         signIn,
         signOut,
         saveSkinProfile,
+        saveReview,
+        saveRoutine,
+        saveProgress,
       }}
     >
       {!loading && children}

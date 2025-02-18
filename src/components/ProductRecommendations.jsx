@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { products } from '../data/products';
+import { getProducts } from '../lib/products';
+import { ROUTINE_STEPS } from '../data/routineSteps';
 import {
   Star,
   ShoppingCart,
@@ -8,6 +9,29 @@ import {
   User2,
   Check,
 } from 'lucide-react';
+
+const SKIN_TYPE_TIPS = {
+  dry: [
+    'Use lukewarm water instead of hot water',
+    'Apply products to damp skin',
+    'Layer multiple hydrating products',
+  ],
+  oily: [
+    'Double cleanse in the evening',
+    'Use lightweight, oil-free moisturizers',
+    "Don't skip moisturizer",
+  ],
+  combination: [
+    'Use different products for different areas',
+    'Focus oil-control products on T-zone',
+    'Hydrate dry areas separately',
+  ],
+  sensitive: [
+    'Patch test new products',
+    'Avoid fragranced products',
+    'Introduce active ingredients slowly',
+  ],
+};
 
 export default function ProductRecommendations({
   skinType,
@@ -18,52 +42,36 @@ export default function ProductRecommendations({
 }) {
   const [activeTab, setActiveTab] = useState('all');
   const [filters, setFilters] = useState({
-    priceRange: 'all', // all, under25, 25to50, over50
+    priceRange: 'all',
     skinConcern: 'all',
     ingredients: [],
   });
   const [isLoading, setIsLoading] = useState(false);
   const [sortBy, setSortBy] = useState('recommended');
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [timeOfDay, setTimeOfDay] = useState('AM');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadProducts() {
+      setLoading(true);
+      try {
+        const productsData = await getProducts();
+        setProducts(productsData);
+      } catch (error) {
+        console.error('Error loading products:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProducts();
+  }, []);
 
   const filteredProducts = products.filter((product) => {
-    // Gender/Tab filter
-    const matchesGender =
-      activeTab === 'all'
-        ? product.gender === 'unisex' || product.gender === skinType.gender
-        : product.gender === activeTab;
-
-    // Skin type filter
-    const matchesSkinType =
-      product.suitableFor.includes(skinType.type) ||
-      product.suitableFor.includes('all');
-
-    // Price range filter
-    const matchesPrice =
-      filters.priceRange === 'all' ||
-      (filters.priceRange === 'under25' && product.price < 25) ||
-      (filters.priceRange === '25to50' &&
-        product.price >= 25 &&
-        product.price <= 50) ||
-      (filters.priceRange === 'over50' && product.price > 50);
-
-    // Skin concern filter
-    const matchesConcern =
-      filters.skinConcern === 'all' ||
-      product.suitableFor.includes(filters.skinConcern);
-
-    // Ingredients filter
-    const matchesIngredients =
-      filters.ingredients.length === 0 ||
-      filters.ingredients.every((ing) => product.ingredients.includes(ing));
-
-    return (
-      matchesGender &&
-      matchesSkinType &&
-      matchesPrice &&
-      matchesConcern &&
-      matchesIngredients
-    );
+    if (activeTab !== 'all' && product.type !== activeTab) return false;
+    return true;
   });
 
   const ProductSkeleton = () => (
@@ -196,351 +204,246 @@ export default function ProductRecommendations({
     );
   };
 
+  const getRoutineSteps = () => {
+    let steps = [...ROUTINE_STEPS.basic];
+
+    if (skinType.concerns && skinType.concerns.length > 0) {
+      skinType.concerns.forEach((concern) => {
+        if (ROUTINE_STEPS.concerns[concern]) {
+          steps = [...steps, ...ROUTINE_STEPS.concerns[concern]];
+        }
+      });
+    }
+
+    return steps.sort((a, b) => a.step - b.step);
+  };
+
+  const getRecommendedProducts = (step) => {
+    return products.filter(
+      (product) =>
+        product.type.toLowerCase() === step.type.toLowerCase() &&
+        product.time_of_day &&
+        product.time_of_day.includes(timeOfDay)
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className='flex justify-center items-center min-h-[200px]'>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900'></div>
+      </div>
+    );
+  }
+
   return (
     <div className='space-y-12'>
+      {/* Enhanced Profile Section */}
       <div className='bg-white p-8 rounded-xl shadow-lg'>
         <div className='max-w-4xl mx-auto'>
-          <h2 className='text-3xl font-bold mb-6'>
-            Your Personalized Skin Profile
-          </h2>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-            <div
-              className={`p-6 bg-gradient-to-br ${
-                skinType.gender === 'female'
-                  ? 'from-rose-50 to-rose-100'
-                  : 'from-cyan-50 to-cyan-100'
-              } rounded-xl`}
-            >
-              <p
-                className={`text-sm ${
-                  skinType.gender === 'female'
-                    ? 'text-rose-600'
-                    : 'text-cyan-600'
-                } mb-2 uppercase tracking-wide`}
+          <div className='flex flex-col md:flex-row md:items-center gap-6'>
+            <div className='flex items-center gap-4'>
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                  skinType.gender === 'female' ? 'bg-rose-100' : 'bg-cyan-100'
+                }`}
               >
-                Skin Type
-              </p>
-              <p className='text-xl font-semibold capitalize'>
-                {skinType.type}
-              </p>
-              <p className='text-gray-600 mt-2'>
-                Your skin's natural characteristics
-              </p>
+                <User2
+                  className={`w-8 h-8 ${
+                    skinType.gender === 'female'
+                      ? 'text-rose-600'
+                      : 'text-cyan-600'
+                  }`}
+                />
+              </div>
+              <div>
+                <h2 className='text-2xl font-bold mb-1'>Your Skin Profile</h2>
+                <div className='space-y-1'>
+                  <p className='text-gray-600'>
+                    <span className='font-medium'>Type:</span>{' '}
+                    <span className='capitalize'>{skinType?.type}</span>
+                  </p>
+                  <p className='text-gray-600'>
+                    <span className='font-medium'>Concerns:</span>{' '}
+                    {skinType?.concerns?.map((concern, index) => (
+                      <span
+                        key={concern}
+                        className={`capitalize ${
+                          index < skinType.concerns.length - 1 ? 'mr-1' : ''
+                        }`}
+                      >
+                        {concern}
+                        {index < skinType.concerns.length - 1 ? ',' : ''}
+                      </span>
+                    ))}
+                  </p>
+                  {skinType?.climate && (
+                    <p className='text-gray-600'>
+                      <span className='font-medium'>Climate:</span>{' '}
+                      <span className='capitalize'>{skinType.climate}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
-            <div
-              className={`p-6 bg-gradient-to-br ${
-                skinType.gender === 'female'
-                  ? 'from-rose-50 to-rose-100'
-                  : 'from-cyan-50 to-cyan-100'
-              } rounded-xl`}
-            >
-              <p
-                className={`text-sm ${
+            <div className='md:ml-auto flex items-center gap-4'>
+              <button
+                onClick={onRetakeQuiz}
+                className={`px-4 py-2 rounded-full border transition-colors ${
                   skinType.gender === 'female'
-                    ? 'text-rose-600'
-                    : 'text-cyan-600'
-                } mb-2 uppercase tracking-wide`}
+                    ? 'border-rose-200 text-rose-600 hover:bg-rose-50'
+                    : 'border-cyan-200 text-cyan-600 hover:bg-cyan-50'
+                }`}
               >
-                Main Concern
-              </p>
-              <p className='text-xl font-semibold capitalize'>
-                {skinType.concerns[0]}
-              </p>
-              <p className='text-gray-600 mt-2'>What you'd like to improve</p>
-            </div>
-            <div
-              className={`p-6 bg-gradient-to-br ${
-                skinType.gender === 'female'
-                  ? 'from-rose-50 to-rose-100'
-                  : 'from-cyan-50 to-cyan-100'
-              } rounded-xl`}
-            >
-              <p
-                className={`text-sm ${
-                  skinType.gender === 'female'
-                    ? 'text-rose-600'
-                    : 'text-cyan-600'
-                } mb-2 uppercase tracking-wide`}
-              >
-                Climate
-              </p>
-              <p className='text-xl font-semibold capitalize'>
-                {skinType.climate}
-              </p>
-              <p className='text-gray-600 mt-2'>Your environmental factors</p>
+                <div className='flex items-center gap-2'>
+                  <ArrowLeft className='w-4 h-4' />
+                  Retake Quiz
+                </div>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div>
-        <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8'>
-          <div className='flex-1'>
-            <h2 className='text-3xl font-bold mb-2'>Recommended Products</h2>
-            <div className='flex space-x-4'>
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`px-4 py-2 rounded-full transition-colors ${
-                  activeTab === 'all'
-                    ? skinType.gender === 'female'
-                      ? 'bg-rose-600 text-white'
-                      : 'bg-cyan-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                All Products
-              </button>
-              <button
-                onClick={() => setActiveTab(skinType.gender)}
-                className={`px-4 py-2 rounded-full transition-colors flex items-center space-x-2 ${
-                  activeTab === skinType.gender
-                    ? skinType.gender === 'female'
-                      ? 'bg-rose-600 text-white'
-                      : 'bg-cyan-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <User2 className='w-4 h-4' />
-                <span>
-                  {skinType.gender === 'female' ? "Women's" : "Men's"} Products
-                </span>
-              </button>
-            </div>
-          </div>
-          <button
-            onClick={onRetakeQuiz}
-            className={`flex items-center text-gray-600 ${
-              skinType.gender === 'female'
-                ? 'hover:text-rose-600'
-                : 'hover:text-cyan-600'
-            } transition-colors`}
-          >
-            <ArrowLeft className='w-5 h-5 mr-2' />
-            Retake Quiz
-          </button>
-        </div>
-
-        <div className='flex flex-wrap gap-4 mb-6'>
-          {/* Price Range Filter */}
-          <div className='relative'>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
-              Price Range
-            </label>
-            <select
-              value={filters.priceRange}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, priceRange: e.target.value }))
-              }
-              className={`appearance-none w-full min-w-[160px] px-4 py-2 bg-white border rounded-lg cursor-pointer outline-none ${
-                skinType.gender === 'female'
-                  ? 'focus:border-rose-300 hover:border-rose-200'
-                  : 'focus:border-cyan-300 hover:border-cyan-200'
-              }`}
-            >
-              <option value='all'>All Prices</option>
-              <option value='under25'>Under $25</option>
-              <option value='25to50'>$25 - $50</option>
-              <option value='over50'>Over $50</option>
-            </select>
-            <div className='absolute right-3 top-[34px] pointer-events-none'>
-              <svg
-                className='w-4 h-4 text-gray-400'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  d='M19 9l-7 7-7-7'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth='2'
-                />
-              </svg>
-            </div>
-          </div>
-
-          {/* Skin Concern Filter */}
-          <div className='relative'>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
-              Skin Concern
-            </label>
-            <select
-              value={filters.skinConcern}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, skinConcern: e.target.value }))
-              }
-              className={`appearance-none w-full min-w-[180px] px-4 py-2 bg-white border rounded-lg cursor-pointer outline-none ${
-                skinType.gender === 'female'
-                  ? 'focus:border-rose-300 hover:border-rose-200'
-                  : 'focus:border-cyan-300 hover:border-cyan-200'
-              }`}
-            >
-              <option value='all'>All Concerns</option>
-              <option value='dry'>Dry Skin</option>
-              <option value='oily'>Oily Skin</option>
-              <option value='sensitive'>Sensitive Skin</option>
-              <option value='combination'>Combination Skin</option>
-            </select>
-            <div className='absolute right-3 top-[34px] pointer-events-none'>
-              <svg
-                className='w-4 h-4 text-gray-400'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  d='M19 9l-7 7-7-7'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth='2'
-                />
-              </svg>
-            </div>
-          </div>
-
-          {/* Ingredients Filter */}
-          <div className='relative flex-1 max-w-xs'>
-            <IngredientsFilter
-              selectedIngredients={filters.ingredients}
-              onChange={(selected) =>
-                setFilters((prev) => ({ ...prev, ingredients: selected }))
-              }
-              skinType={skinType}
-            />
-          </div>
-
-          {/* Clear Filters Button */}
-          <div className='flex items-end'>
+      {/* Routine Section */}
+      <div className='bg-white p-8 rounded-xl shadow-lg'>
+        <div className='flex justify-between items-center mb-6'>
+          <h2 className='text-2xl font-bold'>Your Personalized Routine</h2>
+          <div className='flex gap-2 p-1 bg-gray-100 rounded-full'>
             <button
-              onClick={() =>
-                setFilters({
-                  priceRange: 'all',
-                  skinConcern: 'all',
-                  ingredients: [],
-                })
-              }
-              className={`px-4 py-2 rounded-lg border transition-colors ${
-                skinType.gender === 'female'
-                  ? 'border-rose-200 text-rose-600 hover:bg-rose-50'
-                  : 'border-cyan-200 text-cyan-600 hover:bg-cyan-50'
+              onClick={() => setTimeOfDay('AM')}
+              className={`px-4 py-1 rounded-full transition-colors ${
+                timeOfDay === 'AM'
+                  ? skinType.gender === 'female'
+                    ? 'bg-rose-600 text-white'
+                    : 'bg-cyan-600 text-white'
+                  : ''
               }`}
             >
-              Clear Filters
+              Morning
+            </button>
+            <button
+              onClick={() => setTimeOfDay('PM')}
+              className={`px-4 py-1 rounded-full transition-colors ${
+                timeOfDay === 'PM'
+                  ? skinType.gender === 'female'
+                    ? 'bg-rose-600 text-white'
+                    : 'bg-cyan-600 text-white'
+                  : ''
+              }`}
+            >
+              Evening
             </button>
           </div>
         </div>
 
-        <div className='flex items-center space-x-4 mb-4'>
-          <label className='text-gray-600'>Sort by:</label>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className='border rounded-lg px-3 py-2'
-          >
-            <option value='recommended'>Recommended</option>
-            <option value='price-low'>Price: Low to High</option>
-            <option value='price-high'>Price: High to Low</option>
-            <option value='rating'>Highest Rated</option>
-          </select>
-        </div>
-
-        <p className='text-gray-600 mb-4'>
-          Showing {filteredProducts.length} products
-        </p>
-
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
-          {isLoading
-            ? Array.from({ length: 6 }, (_, index) => (
-                <ProductSkeleton key={index} />
-              ))
-            : filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className='bg-white rounded-xl shadow-lg overflow-hidden group hover:shadow-xl transition-shadow'
-                >
-                  <div className='relative'>
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className='w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300'
-                    />
-                    <button
-                      onClick={() => onToggleWishlist(product.id)}
-                      className={`absolute top-4 right-4 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center ${
+        <div className='space-y-8'>
+          {getRoutineSteps()
+            .filter((step) => step.time.includes(timeOfDay))
+            .map((step, index) => (
+              <div key={index} className='border-b pb-8'>
+                <div className='flex items-center gap-4 mb-4'>
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      skinType.gender === 'female'
+                        ? 'bg-rose-100'
+                        : 'bg-cyan-100'
+                    }`}
+                  >
+                    <span
+                      className={`font-semibold ${
                         skinType.gender === 'female'
-                          ? 'hover:bg-rose-50'
-                          : 'hover:bg-cyan-50'
-                      } transition-colors`}
+                          ? 'text-rose-600'
+                          : 'text-cyan-600'
+                      }`}
                     >
-                      <Heart
-                        className={`w-4 h-4 ${
-                          wishlist.includes(product.id)
-                            ? skinType.gender === 'female'
-                              ? 'text-rose-600 fill-rose-600'
-                              : 'text-cyan-600 fill-cyan-600'
-                            : 'text-gray-600'
-                        }`}
-                      />
-                    </button>
-                    {product.gender === 'men' && (
-                      <div
-                        className={`absolute top-4 left-4 px-3 py-1 ${
-                          skinType.gender === 'female'
-                            ? 'bg-rose-600'
-                            : 'bg-cyan-600'
-                        } text-white text-sm rounded-full`}
-                      >
-                        Men
-                      </div>
-                    )}
+                      {Math.floor(step.step)}
+                    </span>
                   </div>
-                  <div className='p-6'>
-                    <div className='flex justify-between items-start mb-4'>
-                      <div>
-                        <h3 className='text-lg font-semibold mb-1'>
-                          {product.name}
-                        </h3>
-                        <p className='text-sm text-gray-600'>{product.brand}</p>
-                      </div>
-                      <div className='flex items-center bg-amber-50 px-2 py-1 rounded'>
-                        <Star className='w-4 h-4 text-amber-500 fill-current' />
-                        <span className='ml-1 text-sm font-medium'>4.5</span>
-                      </div>
-                    </div>
-                    <p className='text-gray-600 text-sm mb-4'>
-                      {product.description}
-                    </p>
-                    <div className='flex flex-wrap gap-2 mb-4'>
-                      {product.ingredients
-                        .slice(0, 3)
-                        .map((ingredient, index) => (
-                          <span
-                            key={index}
-                            className='text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600'
-                          >
-                            {ingredient}
-                          </span>
-                        ))}
-                    </div>
-                    <div className='flex items-center justify-between'>
-                      <span className='text-xl font-bold'>
-                        ${product.price}
-                      </span>
-                      <button
-                        onClick={() => onAddToCart(product)}
-                        className={`flex items-center space-x-2 ${
-                          skinType.gender === 'female'
-                            ? 'bg-rose-600 hover:bg-rose-700'
-                            : 'bg-cyan-600 hover:bg-cyan-700'
-                        } text-white px-6 py-2 rounded-full transition-colors`}
-                      >
-                        <ShoppingCart className='w-4 h-4' />
-                        <span>Add to Cart</span>
-                      </button>
-                    </div>
+                  <div>
+                    <h3 className='font-semibold text-lg'>{step.type}</h3>
+                    <p className='text-gray-600'>{step.description}</p>
                   </div>
                 </div>
-              ))}
+
+                {/* Product Recommendations for this step */}
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4'>
+                  {getRecommendedProducts(step).length > 0 ? (
+                    getRecommendedProducts(step).map((product) => (
+                      <div
+                        key={product.id}
+                        className='bg-white rounded-xl shadow-lg overflow-hidden'
+                      >
+                        <div className='p-6'>
+                          <div className='flex justify-between items-start mb-4'>
+                            <div>
+                              <h4 className='text-lg font-semibold mb-1'>
+                                {product.name}
+                              </h4>
+                              <p className='text-sm text-gray-500'>
+                                {product.brand}
+                              </p>
+                            </div>
+                            <span className='font-bold text-lg'>
+                              ${product.price}
+                            </span>
+                          </div>
+                          <p className='text-gray-600 text-sm mb-4'>
+                            {product.description}
+                          </p>
+                          {product.ingredients && (
+                            <div className='mb-4'>
+                              <p className='text-sm font-medium text-gray-700 mb-2'>
+                                Key Ingredients:
+                              </p>
+                              <div className='flex flex-wrap gap-2'>
+                                {product.ingredients.map((ingredient) => (
+                                  <span
+                                    key={ingredient}
+                                    className={`px-2 py-1 text-xs rounded-full ${
+                                      skinType.gender === 'female'
+                                        ? 'bg-rose-50 text-rose-700'
+                                        : 'bg-cyan-50 text-cyan-700'
+                                    }`}
+                                  >
+                                    {ingredient}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div className='flex justify-between items-center'>
+                            <button
+                              onClick={() => onToggleWishlist(product.id)}
+                              className={`p-2 rounded-full ${
+                                wishlist.includes(product.id)
+                                  ? 'text-rose-600'
+                                  : 'text-gray-400 hover:text-rose-600'
+                              }`}
+                            >
+                              <Heart className='w-6 h-6' />
+                            </button>
+                            <button
+                              onClick={() => onAddToCart(product)}
+                              className={`px-4 py-2 rounded-full ${
+                                skinType.gender === 'female'
+                                  ? 'bg-rose-600 hover:bg-rose-700'
+                                  : 'bg-cyan-600 hover:bg-cyan-700'
+                              } text-white`}
+                            >
+                              Add to Cart
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className='text-gray-500 italic'>
+                      No products found for this step
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
         </div>
       </div>
     </div>

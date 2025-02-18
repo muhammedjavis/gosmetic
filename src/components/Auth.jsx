@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import { Sparkles } from 'lucide-react';
 
-export default function Auth() {
+export default function Auth({ onBack }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
@@ -22,10 +22,7 @@ export default function Auth() {
       } else {
         const { error } = await signUp(email, password);
         if (error) throw error;
-        else {
-          // Show success message for signup
-          alert('Please check your email to confirm your account');
-        }
+        alert('Please check your email to confirm your account');
       }
     } catch (error) {
       console.error('Auth error:', error);
@@ -40,11 +37,18 @@ export default function Auth() {
       {/* Auth Header */}
       <header className='bg-white shadow-sm'>
         <div className='max-w-7xl mx-auto px-4 py-4'>
-          <div className='flex items-center justify-center'>
+          <div className='flex items-center justify-between'>
+            <button
+              onClick={onBack}
+              className='text-gray-600 hover:text-rose-600'
+            >
+              ← Back
+            </button>
             <div className='flex items-center space-x-2'>
               <Sparkles className='w-6 h-6 text-rose-600' />
               <h1 className='text-xl font-bold text-gray-800'>Gosmetic</h1>
             </div>
+            <div className='w-16'></div>
           </div>
         </div>
       </header>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router } from 'react-router-dom';
 import SkinTypeQuiz from './components/SkinTypeQuiz';
 import ProductRecommendations from './components/ProductRecommendations';
 import { Sparkles, Menu } from 'lucide-react';
@@ -9,23 +10,12 @@ import { products } from './data/products';
 import Toast from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Auth from './components/Auth';
+import LandingPage from './components/LandingPage';
 
 function AppContent() {
   const { user, skinProfiles } = useAuth();
-  const [skinType, setSkinType] = useState(() => {
-    // Initialize skinType from the most recent profile if available
-    if (skinProfiles && skinProfiles.length > 0) {
-      // Get the most recent profile
-      const latestProfile = skinProfiles[skinProfiles.length - 1];
-      return {
-        type: latestProfile.type,
-        concerns: latestProfile.concerns,
-        climate: latestProfile.climate,
-        gender: latestProfile.gender,
-      };
-    }
-    return null;
-  });
+  const [showAuth, setShowAuth] = useState(false);
+  const [skinType, setSkinType] = useState(null); // Initialize as null
   const [wishlist, setWishlist] = useState([]);
   const [cart, setCart] = useState([]);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
@@ -38,9 +28,9 @@ function AppContent() {
       const latestProfile = skinProfiles[skinProfiles.length - 1];
       setSkinType({
         type: latestProfile.type,
-        concerns: latestProfile.concerns,
+        concerns: latestProfile.concerns || [], // Ensure concerns is always an array
         climate: latestProfile.climate,
-        gender: latestProfile.gender,
+        gender: latestProfile.gender || 'unisex', // Provide default gender
       });
     }
   }, [skinProfiles]);
@@ -98,8 +88,12 @@ function AppContent() {
     setCart([]);
   };
 
+  // If no user is logged in, show either landing page or auth
   if (!user) {
-    return <Auth />;
+    if (!showAuth) {
+      return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+    }
+    return <Auth onBack={() => setShowAuth(false)} />;
   }
 
   return (
@@ -246,9 +240,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
   );
 }
 
